@@ -1,15 +1,14 @@
 package mr
 
 import (
+	"fmt"
 	"log"
-	"time"
-)
-import (
 	"net"
 	"net/http"
 	"net/rpc"
 	"os"
 	"sync"
+	"time"
 )
 
 type MapTask struct {
@@ -27,7 +26,7 @@ type ReduceTask struct {
 }
 type Master struct {
 	// Your definitions here.
-	mu                   *sync.Mutex
+	mu                   sync.Mutex
 	MapTasks             []MapTask
 	ReduceTasks          []ReduceTask
 	remainingMapTasks    int
@@ -48,12 +47,15 @@ func (m *Master) GetTaskHandler(args *FinishedTaskArgs, reply *TaskReply) error 
 					m.ReduceTasks[idx].files = append(m.ReduceTasks[idx].files, file)
 				}
 			}
+
 			m.remainingMapTasks--
 		}
 	case Reduce:
 		if !m.ReduceTasks[args.Id].done {
 			m.ReduceTasks[args.Id].done = true
+			fmt.Println(m.remainingReduceTasks)
 			m.remainingReduceTasks--
+
 		}
 	}
 	now := time.Now()
@@ -71,6 +73,7 @@ func (m *Master) GetTaskHandler(args *FinishedTaskArgs, reply *TaskReply) error 
 		}
 		reply.Type = Sleep
 	} else if m.remainingReduceTasks > 0 {
+
 		for _, task := range m.ReduceTasks {
 			if !task.done || task.startTime.Before(tenSecAgo) {
 				reply.Id = task.id
@@ -87,54 +90,6 @@ func (m *Master) GetTaskHandler(args *FinishedTaskArgs, reply *TaskReply) error 
 
 	return nil
 }
-
-//func (m *Master) Sequential(files []string, nReduce int, mapFunc func(filename, content string) []KeyValue, reduceFunc func(key string, values []string) string) {
-//	mr := new(Master)
-//	mr.reduceF = reduceFunc
-//	mr.mapF = mapFunc
-//	mr.NoOfReduceTasks = nReduce
-//	mr.mappedFiles = files
-//	intermediateOutputs := make([]KeyValue, 0)
-//	for _, file := range files {
-//		f, err := os.Open(file)
-//		if err != nil {
-//			log.Printf("could not open file %s", file)
-//		}
-//		info, err := f.Stat()
-//		if err != nil {
-//			log.Printf("could not get file %s info", file)
-//		}
-//
-//		contents := make([]byte, info.Size())
-//		f.Read(contents)
-//		f.Close()
-//		kv := mapFunc(file, string(contents))
-//		intermediateOutputs = append(intermediateOutputs, kv...)
-//	}
-//
-//	sort.Sort(ByKey(intermediateOutputs))
-//	outputFileName := "mr-out"
-//	outFile, err := os.Create(outputFileName)
-//	if err != nil {
-//		log.Printf("could not create output file")
-//	}
-//	i := 0
-//	for i < len(intermediateOutputs) {
-//		j := i + 1
-//
-//		for j < len(intermediateOutputs) && intermediateOutputs[i].Key == intermediateOutputs[j].Key {
-//			j++
-//		}
-//		values := make([]string, 0)
-//		for k := i; k <= j; k++ {
-//			values = append(values, intermediateOutputs[k].Value)
-//		}
-//		output := reduceFunc(intermediateOutputs[i].Key, values)
-//		fmt.Fprintf(outFile, "%v %v\n", intermediateOutputs[i].Key, output)
-//		i = j
-//	}
-//	outFile.Close()
-//}
 
 // start a thread that listens for RPCs from worker.go
 func (m *Master) server() {
@@ -155,7 +110,6 @@ func (m *Master) Done() bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	// Your code here.
-
 	return m.remainingReduceTasks == 0 && m.remainingMapTasks == 0
 }
 
@@ -166,15 +120,18 @@ func MakeMaster(files []string, nReduce int) *Master {
 		ReduceTasks:          make([]ReduceTask, nReduce),
 		remainingMapTasks:    len(files),
 		remainingReduceTasks: nReduce,
+		NoOfReduceTasks:      nReduce,
 	}
 
 	for i, file := range files {
-		m.MapTasks = append(m.MapTasks, MapTask{id: i, done: false, file: file})
+		m.MapTasks[i] = MapTask{id: i, done: false, file: file}
+
 	}
 
 	for i := 0; i < nReduce; i++ {
-		m.ReduceTasks = append(m.ReduceTasks, ReduceTask{id: i, done: false})
+		m.ReduceTasks[i] = ReduceTask{id: i, done: false}
 	}
+
 	// Your code here.
 	m.server()
 	return &m
