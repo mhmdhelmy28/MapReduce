@@ -1,7 +1,6 @@
 package mr
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -53,7 +52,6 @@ func (m *Master) GetTaskHandler(args *FinishedTaskArgs, reply *TaskReply) error 
 	case Reduce:
 		if !m.ReduceTasks[args.Id].done {
 			m.ReduceTasks[args.Id].done = true
-			fmt.Println(m.remainingReduceTasks)
 			m.remainingReduceTasks--
 
 		}
@@ -61,7 +59,8 @@ func (m *Master) GetTaskHandler(args *FinishedTaskArgs, reply *TaskReply) error 
 	now := time.Now()
 	tenSecAgo := now.Add(-10 * time.Second)
 	if m.remainingMapTasks > 0 {
-		for _, task := range m.MapTasks {
+		for id := range m.MapTasks {
+			task := &m.MapTasks[id]
 			if !task.done || task.startTime.Before(tenSecAgo) {
 				reply.Id = task.id
 				reply.Type = Map
@@ -74,7 +73,8 @@ func (m *Master) GetTaskHandler(args *FinishedTaskArgs, reply *TaskReply) error 
 		reply.Type = Sleep
 	} else if m.remainingReduceTasks > 0 {
 
-		for _, task := range m.ReduceTasks {
+		for id := range m.ReduceTasks {
+			task := &m.ReduceTasks[id]
 			if !task.done || task.startTime.Before(tenSecAgo) {
 				reply.Id = task.id
 				reply.Type = Reduce

@@ -30,7 +30,8 @@ func Reduce(key string, values []string) string {
 	return strconv.Itoa(len(values))
 }
 func main() {
-	mr.MakeMaster([]string{"test"}, 1)
+	mr.MakeMaster([]string{"test"}, 2)
+	mr.Worker(Map, Reduce)
 	mr.Worker(Map, Reduce)
 
 }
