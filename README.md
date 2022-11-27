@@ -4,7 +4,7 @@ This is a simple MapReduce implementation in Go that supports multiple workers a
 
 
 
-#Usage:
+# Usage:
 - write your own map and reduce functions in main.go or use the default which helps you to do a word count in some given files.
 -  Run
 ```
