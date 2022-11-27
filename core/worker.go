@@ -1,4 +1,4 @@
-package mr
+package core
 
 import (
 	"encoding/json"
@@ -103,7 +103,8 @@ func Worker(mapF func(string, string) []KeyValue,
 			}
 			sort.Sort(ByKey(kvsToReduce))
 			outputFileName := "mr-out"
-			outFile, err := os.Create(outputFileName)
+			outFile, err := os.OpenFile(outputFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+
 			defer outFile.Close()
 			if err != nil {
 				log.Printf("could not create output file")

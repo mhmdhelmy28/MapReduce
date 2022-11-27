@@ -1,4 +1,4 @@
-package mr
+package core
 
 import (
 	"log"

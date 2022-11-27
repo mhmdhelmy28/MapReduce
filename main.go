@@ -1,7 +1,10 @@
 package main
 
 import (
-	"github.com/mhmdhelmy28/mr"
+	"fmt"
+	mr "github.com/mhmdhelmy28/mr/core"
+	"log"
+	"os"
 	"strconv"
 	"strings"
 	"unicode"
@@ -14,9 +17,9 @@ func Map(filename string, contents string) []mr.KeyValue {
 	// split contents into an array of words.
 	words := strings.FieldsFunc(contents, ff)
 
-	kva := []mr.KeyValue{}
+	var kva []mr.KeyValue
 	for _, w := range words {
-		kv := mr.KeyValue{w, "1"}
+		kv := mr.KeyValue{Key: w, Value: "1"}
 		kva = append(kva, kv)
 	}
 	return kva
@@ -30,8 +33,22 @@ func Reduce(key string, values []string) string {
 	return strconv.Itoa(len(values))
 }
 func main() {
-	mr.MakeMaster([]string{"test"}, 2)
-	mr.Worker(Map, Reduce)
-	mr.Worker(Map, Reduce)
+	if len(os.Args) < 2 {
+		fmt.Fprintf(os.Stderr, "Usage: main inputfiles...\n")
+		os.Exit(1)
+	}
+	nReduce, err := strconv.Atoi(os.Args[1])
+	if err != nil {
+		log.Fatal("Number of reduce tasks should be an integer")
+	}
+	nWorker, err := strconv.Atoi(os.Args[2])
+	if err != nil {
+		log.Fatal("Number of workers should be an integer")
+	}
+	fileNames := os.Args[3:]
+	mr.MakeMaster(fileNames, nReduce)
+	for i := 0; i < nWorker; i++ {
+		mr.Worker(Map, Reduce)
+	}
 
 }
